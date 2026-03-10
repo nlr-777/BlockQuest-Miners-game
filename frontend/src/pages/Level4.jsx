@@ -38,45 +38,45 @@ export const Level4 = () => {
 
   // Timer effect
   useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((t) => {
-          if (t <= 1) {
-            clearInterval(intervalRef.current);
-            // Check taps using ref to get current value
-            if (tapsRef.current >= TARGET_TAPS) {
-              // Win
-              setGameState('won');
-              playLevelComplete();
-              confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#00F0FF', '#BD00FF', '#FFD700'],
-              });
-              completeLevel(4);
-              setIsComplete(true);
-              toast.success(`Block Mined! +${XP_PER_LEVEL} XP`, {
-                description: 'Badge Earned: Hash Master ⚡',
-                duration: 3000,
-              });
-            } else {
-              // Lose
-              setGameState('lost');
-              playError();
-              toast.error('Too slow!', {
-                description: `You needed ${TARGET_TAPS} taps, got ${tapsRef.current}`,
-                duration: 2000,
-              });
-            }
-            return 0;
+    if (gameState !== 'playing') return;
+    
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(intervalRef.current);
+          // Check taps using ref to get current value
+          if (tapsRef.current >= TARGET_TAPS) {
+            // Win
+            setGameState('won');
+            playLevelComplete();
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#00F0FF', '#BD00FF', '#FFD700'],
+            });
+            completeLevel(4);
+            setIsComplete(true);
+            toast.success(`Block Mined! +${XP_PER_LEVEL} XP`, {
+              description: 'Badge Earned: Hash Master ⚡',
+              duration: 3000,
+            });
+          } else {
+            // Lose
+            setGameState('lost');
+            playError();
+            toast.error('Too slow!', {
+              description: `You needed ${TARGET_TAPS} taps, got ${tapsRef.current}`,
+              duration: 2000,
+            });
           }
-          return t - 1;
-        });
-      }, 1000);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
 
-      return () => clearInterval(intervalRef.current);
-    }
+    return () => clearInterval(intervalRef.current);
   }, [gameState, completeLevel, playLevelComplete, playError, XP_PER_LEVEL]);
 
   const startGame = () => {
