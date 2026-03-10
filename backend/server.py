@@ -1,15 +1,14 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,52 +18,127 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Create the main app
+app = FastAPI(title="BlockQuest Miners API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-
 # Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class Badge(BaseModel):
+    id: str
+    name: str
+    icon: str
+
+class GameProgress(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    xp: int = 0
+    currentLevel: int = 1
+    completedLevels: List[int] = []
+    badges: List[Badge] = []
+    playerId: Optional[str] = None
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class GameProgressCreate(BaseModel):
+    xp: int = 0
+    currentLevel: int = 1
+    completedLevels: List[int] = []
+    badges: List[Badge] = []
+    playerId: Optional[str] = None
 
-# Add your routes to the router instead of directly to app
+class GameProgressUpdate(BaseModel):
+    xp: Optional[int] = None
+    currentLevel: Optional[int] = None
+    completedLevels: Optional[List[int]] = None
+    badges: Optional[List[Badge]] = None
+
+# Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "BlockQuest Miners API", "version": "1.0.0"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+@api_router.post("/progress", response_model=GameProgress)
+async def create_progress(input_data: GameProgressCreate):
+    """Create new game progress"""
+    progress = GameProgress(
+        xp=input_data.xp,
+        currentLevel=input_data.currentLevel,
+        completedLevels=input_data.completedLevels,
+        badges=input_data.badges,
+        playerId=input_data.playerId
+    )
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
+    doc = progress.model_dump()
+    doc['createdAt'] = doc['createdAt'].isoformat()
+    doc['updatedAt'] = doc['updatedAt'].isoformat()
     
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    await db.game_progress.insert_one(doc)
+    return progress
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.get("/progress/{player_id}", response_model=GameProgress)
+async def get_progress(player_id: str):
+    """Get game progress by player ID"""
+    progress = await db.game_progress.find_one(
+        {"id": player_id},
+        {"_id": 0}
+    )
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    if not progress:
+        raise HTTPException(status_code=404, detail="Progress not found")
     
-    return status_checks
+    # Convert ISO strings back to datetime
+    if isinstance(progress.get('createdAt'), str):
+        progress['createdAt'] = datetime.fromisoformat(progress['createdAt'])
+    if isinstance(progress.get('updatedAt'), str):
+        progress['updatedAt'] = datetime.fromisoformat(progress['updatedAt'])
+    
+    return progress
+
+@api_router.put("/progress/{player_id}", response_model=GameProgress)
+async def update_progress(player_id: str, update_data: GameProgressUpdate):
+    """Update game progress"""
+    existing = await db.game_progress.find_one({"id": player_id}, {"_id": 0})
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Progress not found")
+    
+    update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
+    update_dict['updatedAt'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.game_progress.update_one(
+        {"id": player_id},
+        {"$set": update_dict}
+    )
+    
+    updated = await db.game_progress.find_one({"id": player_id}, {"_id": 0})
+    
+    if isinstance(updated.get('createdAt'), str):
+        updated['createdAt'] = datetime.fromisoformat(updated['createdAt'])
+    if isinstance(updated.get('updatedAt'), str):
+        updated['updatedAt'] = datetime.fromisoformat(updated['updatedAt'])
+    
+    return updated
+
+@api_router.delete("/progress/{player_id}")
+async def delete_progress(player_id: str):
+    """Delete game progress"""
+    result = await db.game_progress.delete_one({"id": player_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Progress not found")
+    
+    return {"message": "Progress deleted successfully"}
+
+@api_router.get("/leaderboard")
+async def get_leaderboard(limit: int = 10):
+    """Get top players by XP"""
+    players = await db.game_progress.find(
+        {},
+        {"_id": 0, "id": 1, "xp": 1, "completedLevels": 1, "badges": 1}
+    ).sort("xp", -1).limit(limit).to_list(limit)
+    
+    return players
 
 # Include the router in the main app
 app.include_router(api_router)
