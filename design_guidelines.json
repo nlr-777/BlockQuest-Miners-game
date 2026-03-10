@@ -1,0 +1,186 @@
+{
+  "identity": {
+    "name": "BlockQuest Miners",
+    "tone": "Retro Arcade, Kid-Safe, Educational, High-Energy, Cyber-Fun",
+    "audience": "Kids 8-12",
+    "keywords": ["Pixel Art", "Blockchain", "Mining", "Puzzle", "Neon"]
+  },
+  "typography": {
+    "fonts": [
+      {
+        "family": "Press Start 2P",
+        "url": "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap",
+        "usage": "Headings, Game Titles, Level Indicators (Use sparingly, it is wide)"
+      },
+      {
+        "family": "Space Mono",
+        "url": "https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+        "usage": "Body Text, Instructions, Educational Popups"
+      }
+    ],
+    "scale": {
+      "h1": "text-2xl md:text-4xl font-['Press_Start_2P'] leading-tight text-shadow-neon",
+      "h2": "text-xl md:text-2xl font-['Press_Start_2P'] leading-snug",
+      "h3": "text-lg md:text-xl font-['Press_Start_2P'] text-primary",
+      "body": "text-sm md:text-base font-['Space_Mono'] leading-relaxed",
+      "caption": "text-xs font-['Space_Mono'] tracking-wide uppercase"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#00F0FF",
+        "foreground": "#000000",
+        "hover": "#00C2CC",
+        "description": "Cyan Neon - Main Actions, Highlights"
+      },
+      "secondary": {
+        "DEFAULT": "#BD00FF",
+        "foreground": "#FFFFFF",
+        "hover": "#9900CC",
+        "description": "Purple Neon - Secondary Actions, Accents"
+      },
+      "background": {
+        "DEFAULT": "#0F172A",
+        "dark": "#020617",
+        "light": "#1E293B",
+        "description": "Deep Blue-Grey - Main App Background"
+      },
+      "surface": {
+        "DEFAULT": "#1E293B",
+        "border": "#334155",
+        "description": "Card Backgrounds, Panels"
+      },
+      "accent": {
+        "DEFAULT": "#FFD700",
+        "glow": "#FFEB3B",
+        "description": "Gold - Coins, Rewards, XP"
+      },
+      "success": {
+        "DEFAULT": "#10B981",
+        "glow": "#34D399",
+        "description": "Green - Valid Block, Correct Answer"
+      },
+      "error": {
+        "DEFAULT": "#EF4444",
+        "glow": "#F87171",
+        "description": "Red - Tampered Block, Hazard"
+      }
+    },
+    "gradients": {
+      "primary": "bg-gradient-to-r from-[#00F0FF] to-[#BD00FF]",
+      "dark": "bg-gradient-to-b from-[#0F172A] to-[#020617]",
+      "glass": "bg-slate-900/80 backdrop-blur-md border border-white/10"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "retro": "box-shadow: 4px 4px 0px 0px #000000",
+      "retro_sm": "box-shadow: 2px 2px 0px 0px #000000",
+      "neon_cyan": "box-shadow: 0 0 10px #00F0FF, 0 0 20px #00F0FF",
+      "neon_purple": "box-shadow: 0 0 10px #BD00FF, 0 0 20px #BD00FF"
+    },
+    "borders": {
+      "retro": "border-2 md:border-4 border-black",
+      "pixel": "border-image: url('pixel-border.png') 4 round"
+    },
+    "radius": {
+      "default": "rounded-none",
+      "soft": "rounded-sm"
+    }
+  },
+  "component_strategies": {
+    "buttons": {
+      "primary": "bg-primary text-black font-['Press_Start_2P'] text-xs md:text-sm py-3 px-6 border-b-4 border-r-4 border-black active:translate-y-1 active:border-b-0 active:border-r-0 transition-all uppercase tracking-widest hover:brightness-110",
+      "secondary": "bg-secondary text-white font-['Press_Start_2P'] text-xs md:text-sm py-3 px-6 border-b-4 border-r-4 border-black active:translate-y-1 active:border-b-0 active:border-r-0 transition-all uppercase tracking-widest hover:brightness-110",
+      "ghost": "bg-transparent text-primary hover:bg-white/5 font-['Space_Mono'] border-2 border-transparent hover:border-primary/50 transition-colors"
+    },
+    "cards": {
+      "default": "bg-surface border-2 border-black p-4 md:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden",
+      "game_container": "bg-black/40 border-4 border-slate-700 p-4 md:p-8 rounded-xl backdrop-blur-sm shadow-2xl"
+    },
+    "inputs": {
+      "default": "bg-black/50 border-2 border-slate-600 text-primary font-['Space_Mono'] focus:border-primary focus:ring-0 focus:outline-none placeholder:text-slate-500 p-3"
+    },
+    "progress_bars": {
+      "container": "h-6 w-full bg-slate-800 border-2 border-black relative overflow-hidden",
+      "fill": "h-full bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all duration-500 ease-out"
+    }
+  },
+  "layout": {
+    "grid_system": "grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8",
+    "spacing": {
+      "section_y": "py-8 md:py-16",
+      "container_px": "px-4 md:px-8"
+    },
+    "containers": {
+      "main": "max-w-4xl mx-auto min-h-screen flex flex-col"
+    }
+  },
+  "motion": {
+    "library": "framer-motion",
+    "animations": {
+      "hover_bounce": {
+        "scale": 1.05,
+        "transition": { "type": "spring", "stiffness": 400, "damping": 10 }
+      },
+      "click_press": {
+        "scale": 0.95
+      },
+      "fade_in_up": {
+        "initial": { "opacity": 0, "y": 20 },
+        "animate": { "opacity": 1, "y": 0 },
+        "transition": { "duration": 0.5 }
+      },
+      "shake": {
+        "x": [0, -10, 10, -10, 10, 0],
+        "transition": { "duration": 0.4 }
+      },
+      "page_transition": {
+        "initial": { "opacity": 0, "x": -20 },
+        "animate": { "opacity": 1, "x": 0 },
+        "exit": { "opacity": 0, "x": 20 }
+      }
+    }
+  },
+  "assets": {
+    "logos": {
+      "brand_primary": "https://customer-assets.emergentagent.com/job_1b7103cb-60b2-49d7-8677-886184523930/artifacts/3oc0w6yi_blockquest_logo_primary.png"
+    },
+    "characters": {
+      "gerry": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Gerry&backgroundColor=b6e3f4",
+      "zara": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Zara&backgroundColor=c0aede",
+      "sam": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Sam&backgroundColor=ffdfbf",
+      "miko": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Miko&backgroundColor=d1d4f9",
+      "ollie": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Ollie&backgroundColor=ffd5dc",
+      "lila": "https://api.dicebear.com/9.x/pixel-art/svg?seed=Lila&backgroundColor=c1f4c5",
+      "note": "Use these DiceBear pixel avatars as high-quality placeholders if official assets are not locally available."
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 2px, often colored explicitly (e.g., text-primary)"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure text is APCA compliant. Use Black text on Primary/Accent backgrounds. Use White text on Secondary/Dark backgrounds.",
+    "reduced_motion": "Respect prefers-reduced-motion media query by disabling bounce/shake effects.",
+    "aria": "All interactive elements must have aria-labels if icon-only.",
+    "keyboard": "Ensure all drag-and-drop puzzles have keyboard alternatives (e.g., arrow keys or click-to-move)."
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Install 'framer-motion', 'lucide-react', 'sonner', 'canvas-confetti' (or 'react-confetti'), 'dnd-kit' (for drag and drop).",
+    "2. THEME: Configure tailwind.config.js with the custom color palette and font families ('Press Start 2P', 'Space Mono'). Add the Google Fonts import to index.css.",
+    "3. COMPONENTS: Build a reusable 'RetroCard', 'RetroButton', and 'PixelBadge' component first.",
+    "4. GAME LOOP: Use a central 'GameContext' to manage XP, Level, and Unlock state.",
+    "5. PERSISTENCE: Save progress to localStorage immediately on level completion.",
+    "6. AUDIO: If possible, add simple HTML5 audio sounds for 'click', 'success', 'error'. Use placeholder base64 or free URLs if needed.",
+    "7. COMPLETION: The final redirect to blockquestofficial.com must include the query params ?progress=mining_complete&xp=250.",
+    "8. EDUCATIONAL: Ensure every level starts with a brief, kid-friendly explanation popup of the concept (e.g., 'What is a Chain?')."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for text, it reduces readability for kids.",
+    "Keep touch targets large (min 44px) for mobile users.",
+    "Use 'sonner' for all in-game notifications (Level Complete, etc).",
+    "Add 'data-testid' to all buttons and game inputs for testing."
+  ]
+}
