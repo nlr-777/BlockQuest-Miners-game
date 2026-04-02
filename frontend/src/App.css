@@ -99,6 +99,20 @@
   }
 }
 
+/* Disable pull-to-refresh on mobile during drag */
+body.dragging {
+  overscroll-behavior: none;
+  overflow: hidden;
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 640px) {
+  .puzzle-block {
+    min-width: 64px;
+    min-height: 64px;
+  }
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

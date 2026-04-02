@@ -1,12 +1,27 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
-import { SortableContext, useSortable, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { 
+  DndContext, 
+  closestCenter, 
+  useSensor, 
+  useSensors, 
+  PointerSensor, 
+  TouchSensor,
+  KeyboardSensor,
+  DragOverlay
+} from '@dnd-kit/core';
+import { 
+  SortableContext, 
+  useSortable, 
+  horizontalListSortingStrategy, 
+  arrayMove,
+  sortableKeyboardCoordinates
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, GripVertical } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import RetroButton from '../components/RetroButton';
 import RetroCard from '../components/RetroCard';
@@ -22,35 +37,60 @@ const BLOCKS = [
 
 const CORRECT_ORDER = ['red', 'blue', 'green'];
 
-const SortableBlock = ({ block }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+const SortableBlock = ({ block, isDragging: isOverlayDragging }) => {
+  const { 
+    attributes, 
+    listeners, 
+    setNodeRef, 
+    transform, 
+    transition, 
+    isDragging 
+  } = useSortable({ id: block.id });
   
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : 1,
   };
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`puzzle-block ${block.color} ${isDragging ? 'scale-110 shadow-neon-cyan' : ''}`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      className={`puzzle-block ${block.color} ${isDragging ? 'ring-4 ring-primary' : ''} touch-none select-none`}
       data-testid={`block-${block.id}`}
     >
+      {/* Drag handle for better mobile UX */}
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex flex-col items-center">
+          <GripVertical className="text-white/50 mb-1" size={16} />
+          <span className="text-white font-pixel text-lg drop-shadow-lg">{block.label}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Overlay component shown while dragging
+const DragOverlayBlock = ({ block }) => {
+  if (!block) return null;
+  
+  return (
+    <div className={`puzzle-block ${block.color} scale-110 shadow-neon-cyan cursor-grabbing`}>
       <span className="text-white font-pixel text-lg drop-shadow-lg">{block.label}</span>
-    </motion.div>
+    </div>
   );
 };
 
 export const Level1 = () => {
   const navigate = useNavigate();
   const { completeLevel, isLevelCompleted, XP_PER_LEVEL } = useGame();
-  const { playDrop, playSuccess, playError, playLevelComplete } = useGameSounds();
+  const { playDrop, playLevelComplete, playError } = useGameSounds();
   
   const [showPopup, setShowPopup] = useState(true);
   const [blocks, setBlocks] = useState(() => 
@@ -58,16 +98,35 @@ export const Level1 = () => {
   );
   const [isComplete, setIsComplete] = useState(isLevelCompleted(1));
   const [attempts, setAttempts] = useState(0);
+  const [activeId, setActiveId] = useState(null);
 
+  // Optimized sensors for both desktop and mobile
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
+
+  const handleDragStart = useCallback((event) => {
+    setActiveId(event.active.id);
+  }, []);
 
   const handleDragEnd = useCallback((event) => {
     const { active, over } = event;
+    setActiveId(null);
     
-    if (active.id !== over?.id) {
+    if (active.id !== over?.id && over) {
       playDrop();
       setBlocks((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
@@ -76,6 +135,10 @@ export const Level1 = () => {
       });
     }
   }, [playDrop]);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   const checkOrder = useCallback(() => {
     const currentOrder = blocks.map((b) => b.id);
@@ -111,6 +174,8 @@ export const Level1 = () => {
     setBlocks([...BLOCKS].sort(() => Math.random() - 0.5));
     setIsComplete(false);
   };
+
+  const activeBlock = activeId ? blocks.find(b => b.id === activeId) : null;
 
   return (
     <div className="min-h-screen">
@@ -155,6 +220,9 @@ export const Level1 = () => {
               <span className="text-slate-400">→</span>
               <span className="bg-green-500 w-8 h-8 rounded flex items-center justify-center font-pixel text-xs text-white">G</span>
             </div>
+            <p className="font-mono text-xs text-slate-500">
+              Touch and hold to drag on mobile
+            </p>
           </div>
 
           {/* Drop Zone */}
@@ -162,7 +230,9 @@ export const Level1 = () => {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               <SortableContext items={blocks} strategy={horizontalListSortingStrategy}>
                 <div className="flex justify-center gap-4 flex-wrap">
@@ -171,6 +241,11 @@ export const Level1 = () => {
                   ))}
                 </div>
               </SortableContext>
+              
+              {/* Drag overlay for smoother visual feedback */}
+              <DragOverlay>
+                <DragOverlayBlock block={activeBlock} />
+              </DragOverlay>
             </DndContext>
           </div>
 

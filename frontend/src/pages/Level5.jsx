@@ -1,12 +1,27 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
-import { SortableContext, useSortable, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { 
+  DndContext, 
+  closestCenter, 
+  useSensor, 
+  useSensors, 
+  PointerSensor, 
+  TouchSensor,
+  KeyboardSensor,
+  DragOverlay
+} from '@dnd-kit/core';
+import { 
+  SortableContext, 
+  useSortable, 
+  horizontalListSortingStrategy, 
+  arrayMove,
+  sortableKeyboardCoordinates
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
-import { ArrowLeft, RefreshCw, Trophy, Star } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Trophy, Star, GripVertical } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import RetroButton from '../components/RetroButton';
 import RetroCard from '../components/RetroCard';
@@ -24,36 +39,59 @@ const BLOCKS = [
 
 const CORRECT_ORDER = ['genesis', 'block1', 'block2', 'block3', 'block4'];
 
-const SortableBlock = ({ block, index }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
+const SortableBlock = ({ block }) => {
+  const { 
+    attributes, 
+    listeners, 
+    setNodeRef, 
+    transform, 
+    transition, 
+    isDragging 
+  } = useSortable({ id: block.id });
   
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : 1,
   };
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`w-14 h-14 md:w-16 md:h-16 ${block.color} border-4 border-black shadow-retro flex flex-col items-center justify-center cursor-grab active:cursor-grabbing ${isDragging ? 'scale-110 shadow-neon-cyan' : ''}`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      className={`w-14 h-14 md:w-16 md:h-16 ${block.color} border-4 border-black shadow-retro flex flex-col items-center justify-center touch-none select-none relative ${isDragging ? 'ring-4 ring-primary' : ''}`}
       data-testid={`block-${block.id}`}
     >
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="absolute inset-0 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical className="text-white/30 absolute top-0" size={12} />
+        <span className="text-white font-pixel text-sm drop-shadow-lg">{block.label}</span>
+        <span className="text-white/70 font-mono text-[8px]">{block.hash}</span>
+      </div>
+    </div>
+  );
+};
+
+// Overlay shown while dragging
+const DragOverlayBlock = ({ block }) => {
+  if (!block) return null;
+  
+  return (
+    <div className={`w-14 h-14 md:w-16 md:h-16 ${block.color} border-4 border-black shadow-neon-cyan flex flex-col items-center justify-center scale-110`}>
       <span className="text-white font-pixel text-sm drop-shadow-lg">{block.label}</span>
       <span className="text-white/70 font-mono text-[8px]">{block.hash}</span>
-    </motion.div>
+    </div>
   );
 };
 
 export const Level5 = () => {
   const navigate = useNavigate();
   const { completeLevel, isLevelCompleted, XP_PER_LEVEL, isLevelUnlocked, totalXP } = useGame();
-  const { playDrop, playSuccess, playError, playLevelComplete } = useGameSounds();
+  const { playDrop, playLevelComplete, playError } = useGameSounds();
   
   const [showPopup, setShowPopup] = useState(true);
   const [blocks, setBlocks] = useState(() => 
@@ -61,6 +99,7 @@ export const Level5 = () => {
   );
   const [isComplete, setIsComplete] = useState(isLevelCompleted(5));
   const [attempts, setAttempts] = useState(0);
+  const [activeId, setActiveId] = useState(null);
 
   // Redirect if level not unlocked
   useEffect(() => {
@@ -69,15 +108,33 @@ export const Level5 = () => {
     }
   }, [isLevelUnlocked, navigate]);
 
+  // Optimized sensors for both desktop and mobile
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
+
+  const handleDragStart = useCallback((event) => {
+    setActiveId(event.active.id);
+  }, []);
 
   const handleDragEnd = useCallback((event) => {
     const { active, over } = event;
+    setActiveId(null);
     
-    if (active.id !== over?.id) {
+    if (active.id !== over?.id && over) {
       playDrop();
       setBlocks((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
@@ -86,6 +143,10 @@ export const Level5 = () => {
       });
     }
   }, [playDrop]);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   const checkOrder = useCallback(() => {
     const currentOrder = blocks.map((b) => b.id);
@@ -142,6 +203,8 @@ export const Level5 = () => {
     setIsComplete(false);
   };
 
+  const activeBlock = activeId ? blocks.find(b => b.id === activeId) : null;
+
   if (!isLevelUnlocked(5)) return null;
 
   return (
@@ -183,8 +246,11 @@ export const Level5 = () => {
                 Build the complete 5-block chain!
               </p>
             </div>
-            <p className="font-mono text-xs text-accent">
+            <p className="font-mono text-xs text-accent mb-2">
               Genesis (G) → Block 1 → Block 2 → Block 3 → Block 4
+            </p>
+            <p className="font-mono text-xs text-slate-500">
+              Touch and hold to drag on mobile
             </p>
           </div>
 
@@ -210,15 +276,21 @@ export const Level5 = () => {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               <SortableContext items={blocks} strategy={horizontalListSortingStrategy}>
                 <div className="flex justify-center gap-2 md:gap-4 flex-wrap">
-                  {blocks.map((block, index) => (
-                    <SortableBlock key={block.id} block={block} index={index} />
+                  {blocks.map((block) => (
+                    <SortableBlock key={block.id} block={block} />
                   ))}
                 </div>
               </SortableContext>
+              
+              <DragOverlay>
+                <DragOverlayBlock block={activeBlock} />
+              </DragOverlay>
             </DndContext>
           </div>
 
